@@ -1,0 +1,66 @@
+---
+title: "Lab1"
+author: "Vedenichev Dmitry"
+date: "05 12 2021"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## fix data
+
+
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+    fix_column <- function(column){
+  new_column <- as.numeric(step<-sub(' ', '', column))
+  if (any(is.na(new_column))) {
+    return(column)
+  }else{
+    return(new_column)
+  }
+}
+```
+
+Final function
+
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+   fix_data <- function(data){
+     fixed_df <-data.frame(lapply(data, fix_column))
+  return(fixed_df)
+}
+```
+
+#### Program Use and Results
+
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+    file_name <- "test_data_01_(1).csv"
+    get_data <- read.csv(file_name)
+
+    print(fix_data(get_data))
+```
+
+## Get ID
+
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+merge_dataframes <- function(data) {
+  result = Reduce(function(x,y) merge(x,y, by='id'), data) # Using Reduce for merge all dfs by id
+  return(result)
+}
+
+
+get_id <- function(data) {
+  merged = merge_dataframes(data) # all dfs in one
+  means_temp <- rowMeans(merged[-which(colnames(merged)=='id')]) # get mean
+  result <- data.frame(id = merged$id, mean = means_temp)
+  return(result)
+}
+```
+
+```{r echo=TRUE, results='asis',error=FALSE,warning=FALSE, include=TRUE}
+file_name <- "data.RData"
+load(file_name)
+result <- get_id(data)
+print(result)
+```

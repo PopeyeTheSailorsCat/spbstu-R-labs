@@ -13,7 +13,7 @@ get_id <- function(data) {
 
 
 
-file_name <- "C:\\Users\\Admin\\Desktop\\R-hw\\first-lab\\data.RData"
+file_name <- "C:\\Users\\Admin\\Desktop\\R-hw\\first\\data.RData"
 load(file_name)
 result <- get_id(data)
 print(result)

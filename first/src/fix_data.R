@@ -1,3 +1,8 @@
+# Title     : TODO
+# Objective : TODO
+# Created by: Admin
+# Created on: 05.12.2021
+
 fix_column <- function(column){
   new_column <- as.numeric(step<-sub(' ', '', column))
   if (any(is.na(new_column))) {
@@ -12,7 +17,7 @@ fix_data <- function(data){
   return(fixed_df)
 }
 
-file_name <- "C:/Users/Admin/Desktop/R-hw/first-lab/test_data_01_(1).csv" # For your file location
+file_name <- "C:/Users/Admin/Desktop/R-hw/first/test_data_01_(1).csv" # For your file location
 get_data <- read.csv(file_name)
 fix_data(get_data)
 
