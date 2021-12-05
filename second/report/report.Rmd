@@ -1,0 +1,55 @@
+---
+title: "Lab1"
+author: "Vedenichev Dmitry"
+date: "05 12 2021"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# Задание:
+8. Используйте файл RH_T.csv
+Найдите самую жаркую неделю 2020 года в Екатеринбурге (Средняя температура в течение недели максимальна. Неполные недели в начале и в конце года не считаем.).
+
+
+## working function
+
+
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+get_max_avg_week <-function (data){
+  max_temp <- -220
+  max_week <- -1
+  week_counter <- 0
+  t_counter <-0
+  for (row in seq_len(nrow(data))) {
+    day_week <- weekdays(as.Date(data[row, "YYYYMMDD"]))
+    t_counter <- t_counter + data[row, "T2M"]
+    if (day_week == "понедельник" ){
+      if (max_week == -1){
+        max_week <- 1
+      }else{
+        if (max_temp < t_counter/7){
+          max_week <- week_counter
+          max_temp <- t_counter/7
+        }
+        t_counter <- 0
+      }
+      week_counter <- week_counter + 1
+    }
+  }
+  return(max_week)
+}
+```
+
+Usage
+
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+    file <- "RH_T.csv"
+    data <- read.csv(file)
+    get_max_avg_week(data)
+
+```
