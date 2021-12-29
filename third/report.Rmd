@@ -1,0 +1,196 @@
+---
+title: "Lab3"
+author: "Vedenichev Dmitry"
+date: "29 12 2021"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Задание:
+
+1) (6) Файл ExpImp.RData.
+ Приведите данные к формату tidydata. Отобразите значения
+ суммарного экспорта и импорта по регионам в виде столбчатой диаграммы
+ [сгруппировав значения по названию региона]. Экспорт и импорт обозначьте
+ разными цветами. Сделайте второй график, на котором значения экспорта и
+ импорта расположите по разные стороны относительно оси x. Подпишите величины
+ экспорта и импорта.
+
+2) (11) На портале открытых данных Тульской области есть данные о
+ распределении площади лесов и запасов древесины по преобладающим породам и
+ \группам возраста https://opendata71.ru/opendata/7107096442-stateforestregisterTularegion/table.
+ Скачайте эти данные в виде таблицы CSV и постройте по ним круговую и столбчатую диаграмму
+ для категории Площадь земель, занятых лесными насаждениями (покрытых лесной растительностью), всего.
+ Подберите цвета, попробуйте изменить ориентировку столбцов на горизонтальную,
+а для круговой диаграммы поменяейте угол поворота. Подпишите значения.
+
+
+## Задание 1:
+Загрузим начальные данные. Избавимс от мусора в столбцах. Просуммируем значения в столбцах с словами "Импорт" и "Экспорт". Добавим их в исходные данные
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+library(tidyverse)
+library(ggplot2)
+library(reshape2)
+
+load("ExpImp.RData")
+data <- as_tibble(ExpImp)
+data <- data  %>% mutate_all(funs(gsub("-", "0", .)))%>% rename(region = 'Регион' )
+data <- data  %>% mutate_all(coalesce, "0") %>% filter(region != "в том числе:" )
+data[,2:13] <- sapply(data[,2:13], as.double)
+export <- data %>% select(contains('Экспорт')) %>% # 'select' function to choose the columns you want
+    mutate(row_sum = rowSums(.)) # 'mutate' function to create
+import <- data %>% select(contains('Импорт')) %>% # 'select' function to choose the columns you want
+    mutate(row_sum = rowSums(.)) # 'mutate' function to create
+
+data$export <- export$row_sum
+data$import <- import$row_sum
+save_to_shiny <- data
+print(data)
+```
+Возьмем часть данных, преобразуем их и построим преобразованный датафрейм в график
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+semi_data <-data[1:10,]
+dfm <- melt(semi_data[,c("region",'export','import')], id.vars = 1)
+#
+ggplot(dfm, aes(x = region, y = value)) +
+    geom_bar(aes(fill = variable), stat = "identity", position = "dodge")+
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))+
+  scale_y_log10()+xlab("Регион")+ylab("log(Значений)")
+```
+
+Возьмем чуток другие данные, без РФ, т.к. тут будем использовать отрицательные значения и логарифм плохо себя ведет. Считаем, что у экспорта отрицательные значения и строим график.
+Подписываем значения у столбцов
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+semi_data <-data[3:10,]
+semi_data$export <- -1 * semi_data$export
+dfm <- melt(semi_data[,c("region",'export','import')], id.vars = 1)
+ggplot(dfm, aes(x = region, y = value)) +
+    geom_bar(aes(fill = variable), stat = "identity", position = "dodge")+
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))+
+  xlab("Регион")+ylab("Значения")+
+  geom_hline(aes(yintercept = 0))+
+  geom_text(aes(label=value), vjust=1,hjust=1, color="black", size=3)
+```
+
+### RSHINY Вставка
+
+
+```{r, echo=FALSE}
+library(shiny)
+# sliderInput("bins", "Number of bins:", 30, min = 1, max = 94)
+sliderInput("regions", "Выберете промежуток отображения",
+                       min = 1, max = 94, value = c(1, 21))
+
+
+renderPlot({
+ semi_data <-save_to_shiny[input$regions[1]:input$regions[2],]
+dfm <- melt(semi_data[,c("region",'export','import')], id.vars = 1)
+#
+ggplot(dfm, aes(x = region, y = value)) +
+    geom_bar(aes(fill = variable), stat = "identity", position = "dodge")+
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))+
+  scale_y_log10()+xlab("Регион")+ylab("log(Значений)")
+  # draw the histogram with the specified number of bins
+  # hist(x, breaks = bins, col = 'darkgray', border = 'white')
+
+
+})
+
+
+
+ renderPlot({
+  semi_data <-save_to_shiny[input$regions[1]:input$regions[2],]
+ semi_data$export <- -1 * semi_data$export
+dfm <- melt(semi_data[,c("region",'export','import')], id.vars = 1)
+ggplot(dfm, aes(x = region, y = value)) +
+    geom_bar(aes(fill = variable), stat = "identity", position = "dodge")+
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))+
+  xlab("Регион")+ylab("Значения")+
+  geom_hline(aes(yintercept = 0))+
+  geom_text(aes(label=value), vjust=1,hjust=1, color="black", size=3)})
+
+```
+
+
+
+
+
+
+
+
+## Задание 2:
+Отфильтруем изначальные данные.
+Поменяем кодировку файла на ANSI, поскольку UTF-8 неправильно читалось.
+Чтобы иметь возможность использовать фильтрм поменяем столбец, по которому фильтруем обратно к utf-8
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+library(tidyverse)
+file <- "data-forest.csv"
+data <- as_tibble(read.csv(file,sep=";"))
+data$naimenovanie_pokazatelya <- enc2utf8(data$naimenovanie_pokazatelya)
+line  <-  as_tibble("Площадь земель, занятых лесными насаждениями (покрытых лесной растительностью), всего")
+res <- filter(data, naimenovanie_pokazatelya %in% line)
+res$znachenie_pokazatelya <- gsub(",", ".", res$znachenie_pokazatelya)
+res$znachenie_pokazatelya <- as.numeric(res$znachenie_pokazatelya)
+
+print(res)
+```
+Построим графики:
+
+### PIE CHART
+
+
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+library(ggplot2)
+
+# Create Data
+data <- data.frame(
+  name=res$preobladayushchie_drevesnye_i_kustarnikovye_porody,
+  value=res$znachenie_pokazatelya
+)
+
+ggplot(data, aes(x="", y=value, fill=name)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+
+  theme_void() #
+
+```
+
+Повернем его на 45 градусов и добавим значения
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+semi_data <- data %>%
+  arrange(desc(name)) %>%
+  mutate(prop = value / sum(data$value) *100) %>%
+  mutate(ypos = cumsum(prop)- 0.5*prop )
+
+ggplot(semi_data, aes(x="", y=prop, fill=name)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=45) +
+  theme_void() +
+  theme(legend.position="none") +
+
+  geom_text(aes(y = ypos, label = value), color = "white", size=6)
+```
+
+### BAR CHART
+Отрисуем Barchart
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+p<-ggplot(data=data, aes(x=name, y=value, fill = name )) +
+  geom_bar(stat="identity")+theme(axis.text.x = element_text(angle=65, vjust=0.6))+xlab("Преобладающее дерево")+ylab("тыс. га")
+p
+
+```
+Повернем его
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+p + coord_flip()
+```
+Поменяем цвета. Придется написать чуть сложный код, так как нет палетки длины 14. И добавим значения
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, include=TRUE}
+library(RColorBrewer)
+colourCount <- length(unique(data$name))
+getPalette <- colorRampPalette(brewer.pal(9, "Set1"))
+p+scale_fill_manual(values = getPalette(colourCount))+geom_text(aes(label=value), vjust=1.6, color="black", size=3.5)
+```
